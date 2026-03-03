@@ -17,6 +17,14 @@ export default function PhizLogin() {
     setError(null);
     try {
       const res = await fetch("/api/v1/phiz/qrcode", { method: "POST" });
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        setError(
+          "API indisponível. Verifique se o site está registrado na plataforma Phiz."
+        );
+        setStep("error");
+        return;
+      }
       const data = await res.json();
       if (!data.success || !data.data?.qrcode_url) {
         setError(data.error ?? "Falha ao gerar QR code");
@@ -27,7 +35,9 @@ export default function PhizLogin() {
       setScanToken(data.data.scan_token);
       setStep("scanning");
     } catch {
-      setError("Erro de conexão. Tente novamente.");
+      setError(
+        "Erro ao conectar. Verifique se o site está registrado na plataforma Phiz."
+      );
       setStep("error");
     }
   }, []);

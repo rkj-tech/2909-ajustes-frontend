@@ -3,9 +3,11 @@
 // =============================================================================
 // Integrates with Phiz for QR code login and user identity sync.
 // See: Open Platform Integration Guide (access-guide)
+// Set PHIZ_QRCODE_API_URL in .env when you have the production API URL.
 // =============================================================================
 
 const PHIZ_QRCODE_API =
+  process.env.PHIZ_QRCODE_API_URL ??
   "https://s.apifox.cn/cb4d6a3e-04ce-4b5a-ae0c-20f7f124b902";
 
 export interface PhizQRCodeResponse {
@@ -28,12 +30,21 @@ export async function generateLoginQRCode(
       body: JSON.stringify({ callback_url: callbackUrl }),
     });
 
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      return {
+        success: false,
+        error:
+          "API Phiz indisponível. Verifique se o site está registrado e aprovado na plataforma Phiz.",
+      };
+    }
+
     const data = (await response.json()) as PhizQRCodeResponse;
 
     if (data.code !== 0 || !data.data?.qrcode_url) {
       return {
         success: false,
-        error: data.message || "Failed to generate QR code",
+        error: data.message || "Falha ao gerar QR code",
       };
     }
 
@@ -46,7 +57,8 @@ export async function generateLoginQRCode(
     console.error("[Phiz] QR code generation error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error:
+        "API Phiz indisponível. Verifique se o site está registrado e aprovado na plataforma Phiz.",
     };
   }
 }

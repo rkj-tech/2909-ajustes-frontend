@@ -103,6 +103,16 @@ O Portal 2909 integra-se à plataforma Phiz para permitir login via QR code e si
 
 ## Configuração
 
+### API Phiz
+
+Configure a URL da API Phiz quando tiver a URL de produção após o registro:
+
+```env
+PHIZ_QRCODE_API_URL=https://api.phiz.com/...
+```
+
+Sem essa variável, o sistema usa a URL de exemplo do guia de integração (Apifox), que pode não funcionar até o site ser registrado e aprovado pela Phiz.
+
 ### Callback URL
 
 A URL de callback é construída automaticamente com base em:
