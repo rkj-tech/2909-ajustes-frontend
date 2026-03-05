@@ -6,9 +6,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, isStaff } from "@/lib/auth";
-import { getPublicRequestByProtocol, getRequestByProtocol, updateRequestStatus } from "@/lib/requests";
+import { getPublicByProtocol, getByProtocol, updateStatus } from "@/lib/requests";
 import prisma from "@/lib/db";
-// Status é string (compatível SQLite e PostgreSQL)
 
 // GET - Consultar solicitação por protocolo
 export async function GET(
@@ -27,9 +26,8 @@ export async function GET(
 
     const user = await getCurrentUser();
 
-    // Se é staff, retorna dados completos
     if (user && isStaff(user)) {
-      const request = await getRequestByProtocol(protocol);
+      const request = await getByProtocol(protocol);
       if (!request) {
         return NextResponse.json(
           { success: false, error: "Protocolo não encontrado" },
@@ -39,8 +37,7 @@ export async function GET(
       return NextResponse.json({ success: true, data: request });
     }
 
-    // Consulta pública - dados sanitizados (LGPD)
-    const publicData = await getPublicRequestByProtocol(protocol);
+    const publicData = await getPublicByProtocol(protocol);
     if (!publicData) {
       return NextResponse.json(
         { success: false, error: "Protocolo não encontrado" },
@@ -84,8 +81,7 @@ export async function PATCH(
       );
     }
 
-    // Atualizar status
-    const result = await updateRequestStatus(
+    const result = await updateStatus(
       protocol,
       status as string,
       message,
@@ -101,7 +97,6 @@ export async function PATCH(
       );
     }
 
-    // Atualizar atribuição se fornecida
     if (assigneeId || departmentId) {
       await prisma.serviceRequest.update({
         where: { protocol },

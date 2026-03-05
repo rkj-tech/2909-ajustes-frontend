@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, isStaff } from "@/lib/auth";
-import { createRequest, listRequests } from "@/lib/requests";
+import { create, lists } from "@/lib/requests";
 import { sanitizeHTML } from "@/lib/utils";
 import prisma from "@/lib/db";
 
@@ -17,7 +17,6 @@ export async function POST(request: NextRequest) {
     let { serviceId } = body;
     const { serviceSlug, categorySlug, description, address, isAnonymous, origin } = body;
 
-    // Se não tem serviceId direto, buscar por slug
     if (!serviceId && serviceSlug && categorySlug) {
       const category = await prisma.serviceCategory.findUnique({
         where: { slug: categorySlug },
@@ -26,23 +25,17 @@ export async function POST(request: NextRequest) {
         const service = await prisma.service.findFirst({
           where: { slug: serviceSlug, categoryId: category.id },
         });
-        if (service) {
-          serviceId = service.id;
-        }
+        if (service) serviceId = service.id;
       }
     }
 
-    // Se ainda não tem serviceId, tentar buscar só pelo slug do serviço
     if (!serviceId && serviceSlug) {
       const service = await prisma.service.findFirst({
         where: { slug: serviceSlug },
       });
-      if (service) {
-        serviceId = service.id;
-      }
+      if (service) serviceId = service.id;
     }
 
-    // Validações
     if (!serviceId) {
       return NextResponse.json(
         { success: false, error: "Serviço não encontrado" },
@@ -64,10 +57,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obter usuário autenticado (pode ser anônimo)
     const user = await getCurrentUser();
 
-    const result = await createRequest({
+    const result = await create({
       userId: user?.id,
       serviceId,
       description: sanitizeHTML(description.trim()),
@@ -132,7 +124,7 @@ export async function GET(request: NextRequest) {
       sortOrder: (searchParams.get("sortOrder") as "asc" | "desc") || "desc",
     };
 
-    const result = await listRequests(filters);
+    const result = await lists(filters);
 
     return NextResponse.json({
       success: true,

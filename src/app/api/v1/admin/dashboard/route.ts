@@ -7,10 +7,10 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import {
   getDashboardStats,
-  getRequestsByStatusChart,
-  getRequestsByPeriod,
-  getRequestsByCategory,
-  getRequestsByNeighborhood,
+  getsByStatusChart,
+  getsByPeriod,
+  getsByCategory,
+  getsByNeighborhood,
 } from "@/lib/requests";
 
 export async function GET() {
@@ -27,10 +27,10 @@ export async function GET() {
     const [stats, byStatus, byPeriod, byCategory, byNeighborhood] =
       await Promise.all([
         getDashboardStats(),
-        getRequestsByStatusChart(),
-        getRequestsByPeriod(30),
-        getRequestsByCategory(),
-        getRequestsByNeighborhood(),
+        getsByStatusChart(),
+        getsByPeriod(30),
+        getsByCategory(),
+        getsByNeighborhood(),
       ]);
 
     return NextResponse.json({
