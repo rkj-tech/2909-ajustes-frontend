@@ -18,23 +18,17 @@ export async function POST(request: NextRequest) {
 async function handleCallback(request: NextRequest, method: string) {
   try {
     const { searchParams } = new URL(request.url);
-    const token = searchParams.get("token");
     let userId: string | null = searchParams.get("userId");
+    let token: string | null = searchParams.get("token");
 
-    if (method === "POST" && !userId) {
+    if (method === "POST") {
       try {
         const body = await request.json();
-        userId = typeof body?.userId === "string" ? body.userId : null;
+        if (!userId) userId = typeof body?.userId === "string" ? body.userId : null;
+        if (!token) token = typeof body?.token === "string" ? body.token : null;
       } catch {
-        // ignore
+        // ignore parse errors
       }
-    }
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: "Token obrigatório" },
-        { status: 400 }
-      );
     }
 
     if (!userId) {
@@ -44,6 +38,36 @@ async function handleCallback(request: NextRequest, method: string) {
       );
     }
 
+    // ==========================================================================
+    // Fluxo 1: Phiz envia callback SEM token
+    // Associa o userId à sessão PENDING mais recente ainda válida
+    // ==========================================================================
+    if (!token) {
+      const session = await prisma.phizLoginSession.findFirst({
+        where: {
+          status: "PENDING",
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (!session) {
+        // Nenhuma sessão pendente — pode ser login do miniprogram direto
+        // Retorna sucesso para o Phiz não retentar
+        return NextResponse.json({ success: true, userId });
+      }
+
+      await prisma.phizLoginSession.update({
+        where: { scanToken: session.scanToken },
+        data: { phizUserId: userId, status: "COMPLETED" },
+      });
+
+      return NextResponse.json({ success: true, userId });
+    }
+
+    // ==========================================================================
+    // Fluxo 2: Callback com token (fluxo website QR code)
+    // ==========================================================================
     const session = await prisma.phizLoginSession.findUnique({
       where: { scanToken: token },
     });
@@ -75,13 +99,11 @@ async function handleCallback(request: NextRequest, method: string) {
 
     await prisma.phizLoginSession.update({
       where: { scanToken: token },
-      data: {
-        phizUserId: userId,
-        status: "COMPLETED",
-      },
+      data: { phizUserId: userId, status: "COMPLETED" },
     });
 
     return NextResponse.json({ success: true, userId });
+
   } catch (error) {
     console.error("[Phiz] Callback error:", error);
     return NextResponse.json(
