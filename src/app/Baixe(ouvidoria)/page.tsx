@@ -1,8 +1,7 @@
-import { ArrowRight, Download, ExternalLink, Smartphone, CheckCircle, Apple } from "lucide-react";
+"use client";
 
-const PHIZ_WEB_URL = "https://phiz.app";
-const PHIZ_ANDROID_URL = "https://play.google.com/store/apps/details?id=live.phiz.app2";
-const PHIZ_IOS_URL = "https://apps.apple.com/br/app/phiz-chat/id6447375837";
+import { ArrowRight, Download, ExternalLink, Smartphone, CheckCircle, Apple } from "lucide-react";
+import { openPhizDeepLink, PHIZ_STORE_URLS } from "@/lib/phiz-deeplink";
 
 export default function PhizPage() {
   return (
@@ -47,15 +46,14 @@ export default function PhizPage() {
               <p className="text-sm text-neutral-600">
                 Se você já tem o app instalado, clique para acessar.
               </p>
-              <a
-                href={PHIZ_WEB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors w-full sm:w-auto"
+              <button
+                type="button"
+                onClick={() => openPhizDeepLink()}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors w-full sm:w-auto cursor-pointer"
               >
                 Entrar no PhizChat
                 <ArrowRight size={18} aria-hidden="true" />
-              </a>
+              </button>
             </div>
           </article>
 
@@ -73,7 +71,7 @@ export default function PhizPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href={PHIZ_ANDROID_URL}
+                  href={PHIZ_STORE_URLS.android}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors w-full sm:w-auto"
@@ -83,13 +81,13 @@ export default function PhizPage() {
                   <ExternalLink size={18} aria-hidden="true" />
                 </a>
                 <a
-                  href={PHIZ_IOS_URL}
+                  href={PHIZ_STORE_URLS.ios}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white font-semibold transition-colors w-full sm:w-auto"
                 >
                   <Apple size={18} aria-hidden="true" />
-                  IOS
+                  iOS
                   <ExternalLink size={18} aria-hidden="true" />
                 </a>
               </div>
