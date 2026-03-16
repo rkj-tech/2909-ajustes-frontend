@@ -38,35 +38,55 @@ export default function Home() {
           {/* Banner/Carrossel */}
           <Banner />
 
-          {/* CTA Secundário - Cartilha do Cidadão */}
+          {/* CTA Secundário - Cartilha do Cidadão (estilo Instagram Prefeitura BR) */}
           <div
             className="relative overflow-hidden rounded-xl"
             style={{
-              background: "linear-gradient(to bottom, #dbeafe, #bfdbfe)",
+              background: "linear-gradient(135deg, #0d2d6b 0%, #1748ae 40%, #0094de 100%)",
             }}
           >
-            <div className="absolute inset-0 flex items-end justify-center opacity-20">
-              <svg
-                viewBox="0 0 1200 100"
-                className="w-full"
-                preserveAspectRatio="xMidYMax slice"
-                aria-hidden="true"
-                role="presentation"
-              >
+            {/* Decorative circles */}
+            <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-white/6" />
+            <div className="absolute right-16 -bottom-8 w-32 h-32 rounded-full bg-white/5" />
+            <div className="absolute -left-6 bottom-2 w-24 h-24 rounded-full bg-white/4" />
+
+            {/* City skyline */}
+            <div className="absolute bottom-0 left-0 right-0 h-14 opacity-10">
+              <svg viewBox="0 0 1200 60" className="w-full h-full" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
                 <path
-                  d="M0,100 L0,65 L40,65 L40,40 L60,40 L60,55 L100,55 L100,30 L120,30 L120,65 L160,65 L160,50 L200,50 L200,65 L240,65 L240,35 L280,35 L280,65 L320,65 L320,20 L360,20 L360,65 L400,65 L400,45 L440,45 L440,65 L480,65 L480,15 L520,15 L520,65 L560,65 L560,50 L600,50 L600,65 L640,65 L640,35 L680,35 L680,65 L720,65 L720,55 L760,55 L760,65 L800,65 L800,40 L840,40 L840,65 L880,65 L880,28 L920,28 L920,65 L960,65 L960,45 L1000,45 L1000,65 L1040,65 L1040,58 L1080,58 L1080,65 L1120,65 L1120,50 L1160,50 L1160,65 L1200,65 L1200,100 Z"
-                  fill="#1748ae"
+                  d="M0,60 L0,45 L30,45 L30,30 L50,30 L50,40 L80,40 L80,20 L100,20 L100,45 L130,45 L130,35 L160,35 L160,45 L190,45 L190,25 L220,25 L220,45 L250,45 L250,15 L280,15 L280,45 L310,45 L310,38 L340,38 L340,45 L370,45 L370,12 L400,12 L400,45 L430,45 L430,30 L460,30 L460,45 L490,45 L490,10 L520,10 L520,45 L550,45 L550,35 L580,35 L580,45 L610,45 L610,25 L640,25 L640,45 L670,45 L670,38 L700,38 L700,45 L730,45 L730,28 L760,28 L760,45 L790,45 L790,18 L820,18 L820,45 L850,45 L850,35 L880,35 L880,45 L910,45 L910,40 L940,40 L940,45 L970,45 L970,30 L1000,30 L1000,45 L1030,45 L1030,38 L1060,38 L1060,45 L1090,45 L1090,35 L1120,35 L1120,45 L1150,45 L1150,42 L1200,42 L1200,60 Z"
+                  fill="white"
                 />
               </svg>
             </div>
 
-            <div className="relative px-6 md:px-8 py-8 md:py-10 text-center">
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-4 px-6 md:px-10 py-7 md:py-9">
+              {/* Left: text block */}
+              <div className="flex items-center gap-4">
+                <div className="hidden md:flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                  <FileText size={24} className="text-white" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-cyan-300">
+                    Documento oficial
+                  </p>
+                  <h3 className="text-lg md:text-xl font-extrabold text-white leading-tight">
+                    Cartilha ao Cidadão
+                  </h3>
+                  <p className="text-xs md:text-sm text-white/70 mt-0.5">
+                    Conheça seus direitos e saiba como solicitar serviços públicos.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right: CTA button */}
               <Link
                 href="/cartilha"
-                className="cartilha-btn inline-flex items-center gap-3 px-6 md:px-8 py-3 md:py-4 text-white font-bold rounded-lg transition-colors shadow-lg text-sm md:text-base"
+                className="inline-flex items-center gap-2.5 px-6 py-3 bg-white font-bold rounded-lg hover:bg-gray-100 transition-colors shadow-lg text-sm whitespace-nowrap"
+                style={{ color: "#1748ae" }}
               >
-                <Download size={20} aria-hidden="true" />
-                Baixe aqui a Cartilha ao Cidadão
+                <Download size={18} aria-hidden="true" />
+                Baixar Cartilha
               </Link>
             </div>
           </div>

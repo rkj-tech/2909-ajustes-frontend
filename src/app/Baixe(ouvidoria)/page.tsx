@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Download, ExternalLink, Smartphone, CheckCircle, Apple } from "lucide-react";
+import { ArrowRight, Download, ExternalLink, Smartphone, CheckCircle } from "lucide-react";
 import { openPhizDeepLink, PHIZ_STORE_URLS } from "@/lib/phiz-deeplink";
 
 export default function PhizPage() {
@@ -86,7 +86,8 @@ export default function PhizPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white font-semibold transition-colors w-full sm:w-auto"
                 >
-                  <Apple size={18} aria-hidden="true" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/apple-icon.png" alt="" width={18} height={18} aria-hidden="true" />
                   iOS
                   <ExternalLink size={18} aria-hidden="true" />
                 </a>

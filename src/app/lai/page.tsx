@@ -1,6 +1,6 @@
 import {
   FileText, Scale, Clock, Users, Shield, BookOpen, ExternalLink,
-  Download, Phone, Mail, MapPin, Building2, Smartphone, Apple,
+  Download, Phone, Mail, MapPin, Building2, Smartphone,
 } from "lucide-react";
 
 export const metadata = {
@@ -247,7 +247,8 @@ export default function LAIPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-700 hover:bg-blue-50 font-semibold rounded-lg transition-colors"
             >
-              <Apple size={18} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/apple-icon-blue.png" alt="" width={18} height={18} />
               Baixar para iPhone
               <ExternalLink size={16} />
             </a>
