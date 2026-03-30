@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowRight } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -13,6 +14,15 @@ type AuthMode = "login" | "register";
 type LoginMethod = "cpf" | "phiz";
 
 export default function AuthPage() {
+  return (
+    <Suspense fallback={<AuthPageSkeleton />}>
+      <AuthPageContent />
+    </Suspense>
+  );
+}
+
+function AuthPageContent() {
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<AuthMode>("login");
   const [loginMethod, setLoginMethod] = useState<LoginMethod>("cpf");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,10 +38,10 @@ export default function AuthPage() {
     password: "",
     confirmPassword: "",
   });
+  const redirectParam = searchParams.get("redirect") || "";
+  const isAdminAuth = searchParams.get("mode") === "admin" || redirectParam.startsWith("/admin");
 
   const redirectAfterAuth = (role?: string) => {
-    const params = new URLSearchParams(window.location.search);
-    const redirectParam = params.get("redirect");
     const isStaff = ["ADMIN", "MANAGER", "ANALYST", "ATTENDANT"].includes(role || "");
     window.location.href = redirectParam || (isStaff ? "/admin" : "/");
   };
@@ -150,35 +160,44 @@ export default function AuthPage() {
     <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-xl shadow-soft border border-neutral-100 overflow-hidden">
-          <div className="flex border-b border-neutral-200">
-            <button
-              onClick={() => {
-                setMode("login");
-                setLoginMethod("cpf");
-                setErrors({});
-              }}
-              className={`flex-1 py-4 text-center font-medium transition-colors ${
-                mode === "login"
-                  ? "bg-primary text-white"
-                  : "bg-neutral-50 text-neutral-600 hover:bg-neutral-100"
-              }`}
-            >
-              Entrar
-            </button>
-            <button
-              onClick={() => {
-                setMode("register");
-                setErrors({});
-              }}
-              className={`flex-1 py-4 text-center font-medium transition-colors ${
-                mode === "register"
-                  ? "bg-primary text-white"
-                  : "bg-neutral-50 text-neutral-600 hover:bg-neutral-100"
-              }`}
-            >
-              Cadastrar
-            </button>
-          </div>
+          {isAdminAuth ? (
+            <div className="border-b border-neutral-200 bg-neutral-50 px-6 py-4">
+              <p className="text-sm font-semibold text-neutral-900">Acesso administrativo</p>
+              <p className="mt-1 text-sm text-neutral-600">
+                Faça login com seu usuário do painel. O cadastro público não se aplica ao acesso administrativo.
+              </p>
+            </div>
+          ) : (
+            <div className="flex border-b border-neutral-200">
+              <button
+                onClick={() => {
+                  setMode("login");
+                  setLoginMethod("cpf");
+                  setErrors({});
+                }}
+                className={`flex-1 py-4 text-center font-medium transition-colors ${
+                  mode === "login"
+                    ? "bg-primary text-white"
+                    : "bg-neutral-50 text-neutral-600 hover:bg-neutral-100"
+                }`}
+              >
+                Entrar
+              </button>
+              <button
+                onClick={() => {
+                  setMode("register");
+                  setErrors({});
+                }}
+                className={`flex-1 py-4 text-center font-medium transition-colors ${
+                  mode === "register"
+                    ? "bg-primary text-white"
+                    : "bg-neutral-50 text-neutral-600 hover:bg-neutral-100"
+                }`}
+              >
+                Cadastrar
+              </button>
+            </div>
+          )}
 
           <div className="p-6">
             {errors.form && (
@@ -193,7 +212,7 @@ export default function AuthPage() {
               </div>
             )}
 
-            {mode === "login" ? (
+            {mode === "login" || isAdminAuth ? (
               <div className="space-y-4">
                 {loginMethod === "cpf" ? (
                   <form onSubmit={handleLogin} className="space-y-4">
@@ -255,7 +274,7 @@ export default function AuthPage() {
                   <PhizLogin />
                 )}
 
-                {loginMethod === "cpf" ? (
+                {!isAdminAuth && loginMethod === "cpf" ? (
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t border-neutral-200" />
@@ -266,7 +285,7 @@ export default function AuthPage() {
                   </div>
                 ) : null}
 
-                {loginMethod === "cpf" ? (
+                {!isAdminAuth && loginMethod === "cpf" ? (
                   <button
                     type="button"
                     onClick={() => setLoginMethod("phiz")}
@@ -274,7 +293,7 @@ export default function AuthPage() {
                   >
                     Entrar com Phiz (QR Code)
                   </button>
-                ) : (
+                ) : !isAdminAuth ? (
                   <button
                     type="button"
                     onClick={() => setLoginMethod("cpf")}
@@ -282,7 +301,7 @@ export default function AuthPage() {
                   >
                     Voltar para login com CPF
                   </button>
-                )}
+                ) : null}
               </div>
             ) : (
               <form onSubmit={handleRegister} className="space-y-4">
@@ -409,6 +428,19 @@ export default function AuthPage() {
             ← Voltar para o início
           </Link>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthPageSkeleton() {
+  return (
+    <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
+      <div className="w-full max-w-md rounded-xl border border-neutral-100 bg-white p-8 shadow-soft">
+        <div className="h-5 w-40 animate-pulse rounded bg-neutral-200" />
+        <div className="mt-4 h-10 animate-pulse rounded bg-neutral-100" />
+        <div className="mt-3 h-10 animate-pulse rounded bg-neutral-100" />
+        <div className="mt-3 h-10 animate-pulse rounded bg-neutral-100" />
       </div>
     </div>
   );

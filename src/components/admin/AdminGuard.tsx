@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ShieldAlert, Loader2 } from "lucide-react";
-import { ApiError, fetchCurrentUser, getAccessToken } from "@/lib/api";
+import { ApiError, fetchCurrentUser, getAccessToken, getStoredSession } from "@/lib/api";
 
 const STAFF_ROLES = new Set(["ATTENDANT", "ANALYST", "MANAGER", "ADMIN"]);
 
@@ -12,14 +12,34 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const [status, setStatus] = useState<"checking" | "allowed" | "blocked">("checking");
   const [error, setError] = useState("");
+  const latestPathnameRef = useRef(pathname);
+
+  useEffect(() => {
+    latestPathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
 
-    const check = async () => {
+    const redirectToLogin = () => {
+      const params = new URLSearchParams({
+        redirect: latestPathnameRef.current,
+        mode: "admin",
+      });
+      router.replace(`/auth?${params.toString()}`);
+    };
+
+    const check = async (background = false) => {
       if (!getAccessToken()) {
-        router.replace(`/auth?redirect=${encodeURIComponent(pathname)}`);
+        redirectToLogin();
         return;
+      }
+
+      const storedUser = getStoredSession()?.user ?? null;
+      const hasStoredStaffSession = storedUser && STAFF_ROLES.has(String(storedUser.role));
+
+      if (hasStoredStaffSession && !background) {
+        setStatus("allowed");
       }
 
       try {
@@ -37,7 +57,12 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         if (!active) return;
 
         if (err instanceof ApiError && err.status === 401) {
-          router.replace(`/auth?redirect=${encodeURIComponent(pathname)}`);
+          redirectToLogin();
+          return;
+        }
+
+        if (hasStoredStaffSession) {
+          setStatus("allowed");
           return;
         }
 
@@ -48,10 +73,31 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
     check();
 
+    const handleFocus = () => {
+      check(true);
+    };
+
+    const handleStorage = () => {
+      if (!getAccessToken()) {
+        redirectToLogin();
+        return;
+      }
+
+      const storedUser = getStoredSession()?.user ?? null;
+      if (storedUser && STAFF_ROLES.has(String(storedUser.role))) {
+        setStatus("allowed");
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("storage", handleStorage);
+
     return () => {
       active = false;
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("storage", handleStorage);
     };
-  }, [pathname, router]);
+  }, [router]);
 
   if (status === "allowed") {
     return <>{children}</>;

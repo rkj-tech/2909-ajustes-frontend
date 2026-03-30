@@ -35,6 +35,7 @@ export default function Header() {
   const [contrastMode, setContrastMode] = useState<ContrastMode>("normal");
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const adminAuthHref = "/auth?redirect=%2Fadmin&mode=admin";
 
   const isStaff = ["ADMIN", "MANAGER", "ANALYST", "ATTENDANT"].includes(currentUser?.role || "");
   const firstName = currentUser?.name?.trim().split(/\s+/)[0] || "Usuário";
@@ -160,7 +161,7 @@ export default function Header() {
             Entrar / Cadastrar
           </Link>
           <Link
-            href="/admin"
+            href={adminAuthHref}
             className="hidden md:flex items-center gap-2 text-white/90 hover:text-white transition-colors text-sm"
           >
             Área do Admin
@@ -426,7 +427,7 @@ export default function Header() {
                       Entrar / Cadastrar
                     </Link>
                     <Link
-                      href="/admin"
+                      href={adminAuthHref}
                       className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-white hover:bg-white/10 rounded"
                       onClick={() => setIsMenuOpen(false)}
                     >

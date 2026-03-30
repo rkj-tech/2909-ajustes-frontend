@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, RefreshCw, Shield, UserCheck, UserX } from "lucide-react";
-import { apiGet, ApiEnvelope } from "@/lib/api";
-import type { AdminUser, ApiPaginatedData } from "@/types";
+import { Search, RefreshCw, Shield, UserCheck, UserX, Plus, Mail, Phone, Lock, User } from "lucide-react";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import { apiGet, apiPatch, apiPost, ApiEnvelope, getRegisterErrorMessage, unwrapData } from "@/lib/api";
+import type { AdminUser, ApiPaginatedData, AuthTokenData, UserRole } from "@/types";
+import { formatCPF, formatPhone, validateCPF, validateEmail } from "@/lib/utils";
 
 const ROLE_LABELS: Record<string, string> = {
   CITIZEN: "Cidadão",
@@ -21,11 +24,27 @@ const ROLE_COLORS: Record<string, string> = {
   ADMIN: "bg-red-100 text-red-700",
 };
 
+const ADMIN_ROLE_OPTIONS: UserRole[] = ["ATTENDANT", "ANALYST", "MANAGER", "ADMIN"];
+
 export default function UsuariosPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    cpf: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    role: "ATTENDANT" as UserRole,
+    isActive: true,
+  });
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -46,7 +65,95 @@ export default function UsuariosPage() {
 
   const handleSearch = (e: React.FormEvent) => { e.preventDefault(); fetchUsers(); };
 
-  const formatCPF = (cpf: string) => cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  const formatCPFDisplay = (cpf: string) => cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+
+  const validateCreateForm = () => {
+    const nextErrors: Record<string, string> = {};
+
+    if (!createForm.name.trim() || createForm.name.trim().length < 3) {
+      nextErrors.name = "Nome deve ter pelo menos 3 caracteres";
+    }
+
+    if (!validateCPF(createForm.cpf)) {
+      nextErrors.cpf = "CPF inválido";
+    }
+
+    if (!validateEmail(createForm.email)) {
+      nextErrors.email = "E-mail inválido";
+    }
+
+    if (!createForm.phone.trim()) {
+      nextErrors.phone = "Telefone é obrigatório";
+    }
+
+    if (!createForm.password || createForm.password.length < 6) {
+      nextErrors.password = "Senha deve ter pelo menos 6 caracteres";
+    }
+
+    if (createForm.password !== createForm.confirmPassword) {
+      nextErrors.confirmPassword = "As senhas não conferem";
+    }
+
+    setCreateErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      name: "",
+      cpf: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+      role: "ATTENDANT",
+      isActive: true,
+    });
+    setCreateErrors({});
+  };
+
+  const handleCreateUser = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!validateCreateForm()) return;
+
+    setIsCreating(true);
+    setFeedback(null);
+
+    try {
+      const registerResponse = await apiPost<ApiEnvelope<AuthTokenData>>("/api/v1/auth/register", {
+        name: createForm.name.trim(),
+        cpf: createForm.cpf.replace(/\D/g, ""),
+        email: createForm.email.trim().toLowerCase(),
+        phone: createForm.phone.replace(/\D/g, ""),
+        password: createForm.password,
+      });
+
+      const authData = unwrapData(registerResponse);
+      const createdUserId = authData?.user?.id;
+
+      if (!createdUserId) {
+        throw new Error("A API não retornou o usuário criado.");
+      }
+
+      await apiPatch(
+        `/api/v1/admin/users/${createdUserId}`,
+        {
+          role: createForm.role,
+          isActive: createForm.isActive,
+        },
+        { auth: true }
+      );
+
+      setFeedback({ type: "success", message: "Usuário criado com sucesso." });
+      resetCreateForm();
+      setShowCreateForm(false);
+      await fetchUsers();
+    } catch (error) {
+      setFeedback({ type: "error", message: getRegisterErrorMessage(error) });
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -55,8 +162,173 @@ export default function UsuariosPage() {
           <h1 className="text-2xl font-bold text-gray-800">Usuários</h1>
           <p className="text-sm text-gray-500 mt-1">{users.length} usuário{users.length !== 1 ? "s" : ""} encontrado{users.length !== 1 ? "s" : ""}</p>
         </div>
-        <button onClick={fetchUsers} className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"><RefreshCw size={18} /></button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            leftIcon={<Plus size={16} />}
+            onClick={() => {
+              setShowCreateForm((current) => !current);
+              setFeedback(null);
+              setCreateErrors({});
+            }}
+          >
+            Novo usuário
+          </Button>
+          <button onClick={fetchUsers} className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"><RefreshCw size={18} /></button>
+        </div>
       </div>
+
+      {feedback && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            feedback.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          {feedback.message}
+        </div>
+      )}
+
+      {showCreateForm && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">Novo usuário</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Cadastre o usuário base e defina o perfil administrativo sem sair do painel.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleCreateUser} className="mt-5 space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                label="Nome completo"
+                name="admin-user-name"
+                value={createForm.name}
+                onChange={(event) => setCreateForm((current) => ({ ...current, name: event.target.value }))}
+                error={createErrors.name}
+                leftIcon={<User size={18} />}
+                required
+              />
+              <Input
+                label="CPF"
+                name="admin-user-cpf"
+                value={createForm.cpf}
+                onChange={(event) =>
+                  setCreateForm((current) => ({
+                    ...current,
+                    cpf: formatCPF(event.target.value.replace(/\D/g, "").slice(0, 11)),
+                  }))
+                }
+                error={createErrors.cpf}
+                leftIcon={<User size={18} />}
+                placeholder="000.000.000-00"
+                required
+              />
+              <Input
+                label="E-mail"
+                name="admin-user-email"
+                type="email"
+                value={createForm.email}
+                onChange={(event) => setCreateForm((current) => ({ ...current, email: event.target.value }))}
+                error={createErrors.email}
+                leftIcon={<Mail size={18} />}
+                required
+              />
+              <Input
+                label="Telefone"
+                name="admin-user-phone"
+                value={createForm.phone}
+                onChange={(event) =>
+                  setCreateForm((current) => ({
+                    ...current,
+                    phone: formatPhone(event.target.value.replace(/\D/g, "").slice(0, 11)),
+                  }))
+                }
+                error={createErrors.phone}
+                leftIcon={<Phone size={18} />}
+                placeholder="(00) 00000-0000"
+                required
+              />
+              <Input
+                label="Senha provisória"
+                name="admin-user-password"
+                type="password"
+                value={createForm.password}
+                onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))}
+                error={createErrors.password}
+                leftIcon={<Lock size={18} />}
+                required
+              />
+              <Input
+                label="Confirmar senha"
+                name="admin-user-confirm-password"
+                type="password"
+                value={createForm.confirmPassword}
+                onChange={(event) =>
+                  setCreateForm((current) => ({ ...current, confirmPassword: event.target.value }))
+                }
+                error={createErrors.confirmPassword}
+                leftIcon={<Lock size={18} />}
+                required
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  Perfil
+                </label>
+                <select
+                  value={createForm.role}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, role: event.target.value as UserRole }))
+                  }
+                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-md bg-white text-neutral-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                >
+                  {ADMIN_ROLE_OPTIONS.map((value) => (
+                    <option key={value} value={value}>
+                      {ROLE_LABELS[value]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <label className="flex items-center gap-2 rounded-md border border-neutral-200 px-4 py-2.5 text-sm text-neutral-700 mt-7">
+                <input
+                  type="checkbox"
+                  checked={createForm.isActive}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, isActive: event.target.checked }))
+                  }
+                />
+                Manter usuário ativo
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" size="sm" isLoading={isCreating} leftIcon={<Plus size={15} />}>
+                Criar usuário
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  resetCreateForm();
+                  setShowCreateForm(false);
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <form onSubmit={handleSearch} className="flex gap-3">
@@ -107,7 +379,7 @@ export default function UsuariosPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-gray-600">{user.email}</td>
-                    <td className="py-3 px-4 text-gray-600 font-mono text-xs">{formatCPF(user.cpf)}</td>
+                    <td className="py-3 px-4 text-gray-600 font-mono text-xs">{formatCPFDisplay(user.cpf)}</td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${ROLE_COLORS[user.role] || "bg-gray-100"}`}>
                         <Shield size={12} />
