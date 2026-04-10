@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -11,11 +11,12 @@ import {
   Send,
   AlertTriangle,
   CheckCircle,
-  Paperclip,
   MessageSquare,
   History,
 } from "lucide-react";
 import { apiGet, apiPatch, apiPost, ApiEnvelope } from "@/lib/api";
+import { RequestAttachmentsPreview } from "@/components/admin/RequestAttachmentsPreview";
+import type { RequestAttachment } from "@/types";
 
 // =============================================================================
 // Página de Detalhe da Solicitação (Admin)
@@ -48,7 +49,7 @@ interface RequestDetail {
   user: { name: string; email: string } | null;
   assignee: { name: string } | null;
   department: { name: string } | null;
-  attachments: { id: string; fileName: string; fileUrl: string; fileType: string; fileSize: number }[];
+  attachments?: RequestAttachment[];
   history: { id: string; fromStatus: string; toStatus: string; message: string; isPublic: boolean; userName: string; createdAt: string }[];
   comments: { id: string; content: string; isInternal: boolean; user: { name: string }; createdAt: string }[];
 }
@@ -122,11 +123,7 @@ export default function SolicitacaoDetailPage({
   const [isInternalComment, setIsInternalComment] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  useEffect(() => {
-    fetchRequest();
-  }, [resolvedParams.protocol]);
-
-  const fetchRequest = async () => {
+  const fetchRequest = useCallback(async () => {
     try {
       const json = await apiGet<ApiEnvelope<RequestDetail>>(
         `/api/v1/requests/${resolvedParams.protocol}`,
@@ -143,7 +140,11 @@ export default function SolicitacaoDetailPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [resolvedParams.protocol]);
+
+  useEffect(() => {
+    fetchRequest();
+  }, [fetchRequest]);
 
   const handleStatusUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -425,34 +426,7 @@ export default function SolicitacaoDetailPage({
           </div>
 
           {/* Anexos */}
-          {request.attachments.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Paperclip size={20} />
-                Anexos ({request.attachments.length})
-              </h2>
-              <div className="space-y-2">
-                {request.attachments.map((att) => (
-                  <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{att.fileName}</p>
-                      <p className="text-xs text-gray-500">
-                        {att.fileType} - {(att.fileSize / 1024).toFixed(1)} KB
-                      </p>
-                    </div>
-                    <a
-                      href={att.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      Download
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <RequestAttachmentsPreview attachments={request.attachments} />
         </div>
 
         {/* Coluna lateral */}
